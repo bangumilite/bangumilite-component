@@ -1,4 +1,4 @@
-module github.com/sstp105/bangumi-components
+module github.com/sstp105/bangumi-component
 
 go 1.23.4
 
