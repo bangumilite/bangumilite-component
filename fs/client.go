@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
+	"github.com/sstp105/bangumi-component/mailer"
 	"github.com/sstp105/bangumi-component/model"
 	"google.golang.org/api/option"
 	"os"
@@ -15,6 +16,8 @@ const (
 
 	TokenCollectionKey           = "token"
 	TokenCollectionBangumiDocKey = "bangumi"
+
+	MailgunDocumentKey = "mailgun"
 
 	BangumiAccessTokenKey  = "access_token"
 	BangumiRefreshTokenKey = "refresh_token"
@@ -63,6 +66,18 @@ func (c *Client) GetBangumiToken(ctx context.Context) (*model.BangumiToken, erro
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
 	data, err := getDocument[model.BangumiToken](ctx, docRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// GetMailgunConfig retrieves the Mailgun related configuration from firestore.
+func (c *Client) GetMailgunConfig(ctx context.Context) (*mailer.MailgunConfig, error) {
+	docRef := c.fs.Collection(TokenCollectionKey).Doc(MailgunDocumentKey)
+
+	data, err := getDocument[mailer.MailgunConfig](ctx, docRef)
 	if err != nil {
 		return nil, err
 	}
