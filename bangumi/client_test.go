@@ -95,6 +95,50 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 		})
 	})
 
+	Describe("GetSubjects", func() {
+		mockAccessToken := "<MOCK_ACCESS_TOKEN>"
+		mockSubjectIDs := []int{1, 2}
+
+		It("returns the subject if request succeed", func() {
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", mockSubjectIDs[0]),
+				func(req *http.Request) (*http.Response, error) {
+					resp := httpmock.NewStringResponse(200, `
+						{
+					    	"id": 1,
+					    	"name": "string",
+					    	"name_cn": "string",
+					    	"summary": "string"
+						}
+					`,
+					)
+					resp.Header.Add("Content-Type", "application/json")
+					return resp, nil
+				},
+			)
+
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", mockSubjectIDs[1]),
+				func(req *http.Request) (*http.Response, error) {
+					resp := httpmock.NewStringResponse(200, `
+						{
+					    	"id": 2,
+					    	"name": "string",
+					    	"name_cn": "string",
+					    	"summary": "string"
+						}
+					`,
+					)
+					resp.Header.Add("Content-Type", "application/json")
+					return resp, nil
+				},
+			)
+
+			resp, err := client.GetSubjects(context.Background(), mockSubjectIDs, mockAccessToken)
+
+			Expect(err).To(BeNil())
+			Expect(len(resp)).To(Equal(len(mockSubjectIDs)))
+		})
+	})
+
 	Describe("RefreshAccessToken", func() {
 		mockToken := model.BangumiToken{
 			AccessToken:  "<ACCESS_TOKEN>",

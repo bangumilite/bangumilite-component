@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	cloud.google.com/go/firestore v1.18.0
 	github.com/PuerkitoBio/goquery v1.10.1
+	github.com/agnivade/levenshtein v1.2.0
 	github.com/go-resty/resty/v2 v2.16.3
 	github.com/jarcoal/httpmock v1.3.1
 	github.com/mailgun/mailgun-go/v4 v4.21.0
