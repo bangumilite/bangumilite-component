@@ -62,10 +62,10 @@ func (c *Client) Close() error {
 }
 
 // GetBangumiToken retrieves bangumi tokens that can be used to call bangumi API.
-func (c *Client) GetBangumiToken(ctx context.Context) (*model.BangumiToken, error) {
+func (c *Client) GetBangumiToken(ctx context.Context) (*BangumiToken, error) {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
-	data, err := getDocument[model.BangumiToken](ctx, docRef)
+	data, err := getDocument[BangumiToken](ctx, docRef)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, ref
 	return nil
 }
 
-func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.TrendingSubject) error {
+func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []TrendingSubject) error {
 	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
 
 	data := map[string]interface{}{

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-component/model"
+	"github.com/sstp105/bangumi-component/fs"
 	"net/http"
 )
 
@@ -25,8 +25,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 		httpmock.ActivateNonDefault(client.client.GetClient())
 	})
 
-	Describe("GetSubject", func() {
-		mockAccessToken := "<MOCK_ACCESS_TOKEN>"
+	Describe("APIPathGetSubject", func() {
 		mockSubjectID := 1
 
 		It("returns error if request returns error", func() {
@@ -44,7 +43,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 				},
 			)
 
-			resp, err := client.GetSubject(context.Background(), mockSubjectID, mockAccessToken)
+			resp, err := client.GetSubject(context.Background(), mockSubjectID)
 
 			Expect(err).ToNot(BeNil())
 			Expect(resp).To(BeNil())
@@ -64,7 +63,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 				},
 			)
 
-			resp, err := client.GetSubject(context.Background(), mockSubjectID, mockAccessToken)
+			resp, err := client.GetSubject(context.Background(), mockSubjectID)
 
 			Expect(err).ToNot(BeNil())
 			Expect(resp).To(BeNil())
@@ -87,7 +86,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 				},
 			)
 
-			resp, err := client.GetSubject(context.Background(), mockSubjectID, mockAccessToken)
+			resp, err := client.GetSubject(context.Background(), mockSubjectID)
 
 			Expect(err).To(BeNil())
 			Expect(resp).ToNot(BeNil())
@@ -96,7 +95,6 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 	})
 
 	Describe("GetSubjects", func() {
-		mockAccessToken := "<MOCK_ACCESS_TOKEN>"
 		mockSubjectIDs := []int{1, 2}
 
 		It("returns the subject if request succeed", func() {
@@ -132,7 +130,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 				},
 			)
 
-			resp, err := client.GetSubjects(context.Background(), mockSubjectIDs, mockAccessToken)
+			resp, err := client.GetSubjects(context.Background(), mockSubjectIDs)
 
 			Expect(err).To(BeNil())
 			Expect(len(resp)).To(Equal(len(mockSubjectIDs)))
@@ -140,7 +138,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 	})
 
 	Describe("RefreshAccessToken", func() {
-		mockToken := model.BangumiToken{
+		mockToken := fs.BangumiToken{
 			AccessToken:  "<ACCESS_TOKEN>",
 			RefreshToken: "<REFRESH_TOKEN>",
 			ClientID:     "<CLIENT_ID>",

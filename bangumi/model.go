@@ -1,4 +1,4 @@
-package model
+package bangumi
 
 type Subject struct {
 	ID         int        `json:"id" firestore:"id"`
@@ -37,7 +37,16 @@ type Rating struct {
 	Score float64
 }
 
-type BangumiTokenResponse struct {
+type RelatedCharacter struct {
+	Actors []Person `json:"actors" firestore:"actors"`
+}
+
+type Person struct {
+	ID   int    `json:"id" firestore:"id"`
+	Name string `json:"name" firestore:"name"`
+}
+
+type OAuthResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int    `json:"expires_in"`
@@ -45,12 +54,12 @@ type BangumiTokenResponse struct {
 	UserID       int    `json:"user_id"`
 }
 
-type BangumiOAuthErrorResponse struct {
+type OAuthErrorResponse struct {
 	Error            string `json:"error"`
 	ErrorDescription string `json:"error_description"`
 }
 
-type BangumiGenericErrorResponse struct {
+type GenericErrorResponse struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }

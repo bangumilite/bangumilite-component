@@ -1,4 +1,4 @@
-package model
+package fs
 
 type BangumiToken struct {
 	AccessToken  string `firestore:"access_token"`

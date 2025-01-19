@@ -6,105 +6,104 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-component/model"
+	"github.com/sstp105/bangumi-component/fs"
+	"github.com/sstp105/bangumi-component/httplib"
 	"net/http"
 	"strings"
 	"sync"
-	"time"
 )
 
-var DefaultMaxRetries = 3
-var DefaultInitialDelay = time.Duration(5) * time.Second
-var DefaultMaxDelay = time.Duration(60) * time.Second
+type APIPath string
+type APIError string
 
 const (
-	Host string = "https://bangumi.tv"
+	HTMLBaseURL string = "https://bangumi.tv"                // For scraping HTML content
+	APIBaseURL  string = "https://api.bgm.tv"                // For bangumi RESTful APIs
+	OAuthURL    string = "https://bgm.tv/oauth/access_token" // For bangumi OAuth flow
 
-	APIBaseURL string = ""
+	UserAgentHeader           = "sstp105/bangumi-services (GCP; Golang; Private Project)"
+	ContentTypeJSON           = "application/json"
+	ContentTypeFormURLEncoded = "application/x-www-form-urlencoded"
 
-	UserAgent                     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-	ApplicationJsonContentType    = "application/json"
-	ApplicationFormUrlencodedType = "application/x-www-form-urlencoded"
+	MaxConcurrentGoroutines = 10 // Max goroutines for concurrent API calls
 
-	MaxGoroutines = 10
+	APIPathGetSubject           APIPath = "/v0/subjects/%d"
+	APIPathGetSubjectCharacters APIPath = "/v0/subjects/%d/characters"
+
+	ErrorGeneric APIError = "ErrorGeneric"
+	ErrorOAuth   APIError = "ErrorOAuth"
 )
 
-type ClientConfig struct {
-	RetryCnt     int
-	InitialDelay time.Duration
-	MaxWaitTime  time.Duration
-}
-
 type Client struct {
-	cfg    *ClientConfig
 	client *resty.Client
 	logger *logrus.Logger
 }
 
 func NewClient(logger *logrus.Logger) *Client {
-	cfg := ClientConfig{
-		RetryCnt:     DefaultMaxRetries,
-		InitialDelay: DefaultInitialDelay,
-		MaxWaitTime:  DefaultMaxDelay,
-	}
-	return NewWithConfig(logger, &cfg)
-}
-
-func NewWithConfig(logger *logrus.Logger, cfg *ClientConfig) *Client {
-	if cfg == nil {
-		return NewClient(logger)
-	}
-
-	if cfg.RetryCnt == 0 {
-		cfg.RetryCnt = DefaultMaxRetries
-	}
-
-	if cfg.InitialDelay == 0 {
-		cfg.InitialDelay = DefaultInitialDelay
-	}
-
-	if cfg.MaxWaitTime == 0 {
-		cfg.MaxWaitTime = DefaultMaxDelay
-	}
-
-	client := resty.New()
-	client.
-		SetRetryCount(cfg.RetryCnt).
-		SetRetryWaitTime(cfg.InitialDelay).
-		SetRetryMaxWaitTime(cfg.MaxWaitTime).
-		AddRetryCondition(func(r *resty.Response, err error) bool {
-			return r.StatusCode() >= http.StatusInternalServerError
-		})
+	client := httplib.NewClient()
 
 	return &Client{
-		cfg:    cfg,
 		client: client,
 		logger: logger,
 	}
 }
 
-func (c *Client) GetSubjects(ctx context.Context, ids []int, accessToken string) ([]model.Subject, error) {
-	return concurrentFetch(ctx, ids, func(ctx context.Context, id int) (model.Subject, error) {
-		subject, err := c.GetSubject(ctx, id, accessToken)
+func (c *Client) GetSubjects(ctx context.Context, ids []int) ([]Subject, error) {
+	return c.GetSubjectsWithAccessToken(ctx, ids, "")
+}
+
+func (c *Client) GetSubjectsWithAccessToken(ctx context.Context, ids []int, accessToken string) ([]Subject, error) {
+	return concurrentFetch(ctx, ids, func(ctx context.Context, id int) (Subject, error) {
+		subject, err := c.GetSubjectWithAccessToken(ctx, id, accessToken)
 		if err != nil {
-			return model.Subject{}, err
+			return Subject{}, err
 		}
 
 		return *subject, nil
 	})
 }
 
-func (c *Client) GetSubject(ctx context.Context, id int, accessToken string) (*model.Subject, error) {
-	url := fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", id)
+func (c *Client) GetSubject(ctx context.Context, id int) (*Subject, error) {
+	return c.GetSubjectWithAccessToken(ctx, id, "")
+}
 
-	subject := model.Subject{}
+func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessToken string) (*Subject, error) {
+	url := apiURL(APIPathGetSubject, id)
+	subject := Subject{}
+
+	req := c.client.R().
+		SetContext(ctx).
+		SetHeader("User-Agent", UserAgentHeader).
+		SetHeader("Content-Type", ContentTypeJSON).
+		SetResult(&subject).
+		SetError(GenericErrorResponse{})
+
+	if accessToken != "" {
+		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	}
+
+	resp, err := req.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.IsError() {
+		return nil, handleError(resp, url, ErrorGeneric)
+	}
+
+	return &subject, nil
+}
+
+func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]RelatedCharacter, error) {
+	url := apiURL(APIPathGetSubjectCharacters, id)
+	var characters []RelatedCharacter
+
 	resp, err := c.client.R().
 		SetContext(ctx).
-		SetHeader("User-Agent", UserAgent).
-		SetHeader("Content-Type", ApplicationJsonContentType).
-		SetHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken)).
-		SetResult(&subject).
-		SetError(model.BangumiGenericErrorResponse{}).
+		SetHeader("User-Agent", UserAgentHeader).
+		SetHeader("Content-Type", ContentTypeJSON).
+		SetResult(&characters).
+		SetError(GenericErrorResponse{}).
 		Get(url)
 
 	if err != nil {
@@ -112,19 +111,14 @@ func (c *Client) GetSubject(ctx context.Context, id int, accessToken string) (*m
 	}
 
 	if resp.IsError() {
-		errResp := resp.Error().(*model.BangumiGenericErrorResponse)
-		return nil, fmt.Errorf("failed to get subject %d, status code:%d, error:%s,%s",
-			id,
-			resp.StatusCode(),
-			errResp.Title,
-			errResp.Description,
-		)
+		return nil, handleError(resp, url, ErrorGeneric)
 	}
 
-	return &subject, nil
+	return characters, nil
 }
 
-func (c *Client) RefreshAccessToken(ctx context.Context, token model.BangumiToken) (*model.BangumiTokenResponse, error) {
+func (c *Client) RefreshAccessToken(ctx context.Context, token fs.BangumiToken) (*OAuthResponse, error) {
+	tokenResp := OAuthResponse{}
 	formData := map[string]string{
 		"grant_type":    "refresh_token",
 		"client_id":     token.ClientID,
@@ -133,33 +127,27 @@ func (c *Client) RefreshAccessToken(ctx context.Context, token model.BangumiToke
 		"refresh_token": token.RefreshToken,
 	}
 
-	tokenResp := model.BangumiTokenResponse{}
-
 	resp, err := c.client.R().
 		SetContext(ctx).
-		SetHeader("Content-Type", ApplicationFormUrlencodedType).
+		SetHeader("Content-Type", ContentTypeFormURLEncoded).
 		SetFormData(formData).
 		SetResult(&tokenResp).
-		SetError(model.BangumiOAuthErrorResponse{}).
-		Post("https://bgm.tv/oauth/access_token")
+		SetError(OAuthErrorResponse{}).
+		Post(OAuthURL)
 
 	if err != nil {
 		return nil, err
 	}
 
 	if resp.IsError() {
-		errResp := resp.Error().(*model.BangumiOAuthErrorResponse)
-		return nil, fmt.Errorf("failed to request new access token, status code:%d, message:%s",
-			resp.StatusCode(),
-			errResp.ErrorDescription,
-		)
+		return nil, handleError(resp, OAuthURL, ErrorOAuth)
 	}
 
 	return &tokenResp, nil
 }
 
 func (c *Client) GetHTML(ctx context.Context, path string) (*goquery.Document, error) {
-	url := fmt.Sprintf("%s/%s", Host, path)
+	url := fmt.Sprintf("%s/%s", HTMLBaseURL, path)
 
 	resp, err := c.client.R().
 		SetContext(ctx).
@@ -182,6 +170,35 @@ func (c *Client) GetHTML(ctx context.Context, path string) (*goquery.Document, e
 	return doc, nil
 }
 
+func apiURL(p APIPath, args ...interface{}) string {
+	return fmt.Sprintf(APIBaseURL+string(p), args...)
+}
+
+// handleError is a generic function to handle errors from bangumi API responses.
+func handleError(resp *resty.Response, path string, errorType APIError) error {
+	switch errorType {
+	case ErrorOAuth:
+		errResp := resp.Error().(*OAuthErrorResponse)
+		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Error, errResp.ErrorDescription))
+	case ErrorGeneric:
+		errResp := resp.Error().(*GenericErrorResponse)
+		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Title, errResp.Description))
+	default:
+		return fmt.Errorf("unexpected error type: %s", errorType)
+	}
+}
+
+func apiError(path string, statusCode int, message string) error {
+	return fmt.Errorf("failed to call %s, status code: %d, error: %s",
+		path,
+		statusCode,
+		message,
+	)
+}
+
+// concurrentFetch fetches data concurrently for a list of IDs using a provided fetch function.
+// It ensures that the fetches are limited by a maximum number of concurrent goroutines.
+// The function will wait for all fetches to complete and return the results.
 func concurrentFetch[T any](
 	ctx context.Context,
 	ids []int,
@@ -191,7 +208,7 @@ func concurrentFetch[T any](
 		results []T
 		mu      sync.Mutex
 		wg      sync.WaitGroup
-		sem     = make(chan struct{}, MaxGoroutines)
+		sem     = make(chan struct{}, MaxConcurrentGoroutines)
 		errCh   = make(chan error, len(ids))
 	)
 
@@ -223,4 +240,22 @@ func concurrentFetch[T any](
 	}
 
 	return results, nil
+}
+
+// removeDuplicateActorsFromCharacters removes duplicate actors from a list of subject related characters,
+// An actor could act more than one character in one subject.
+// The function is useful when the caller need to get unique actors (CV) for information purpose.
+func removeDuplicateActorsFromCharacters(characters []RelatedCharacter) []Person {
+	mp := make(map[int]bool)
+	var uniqueActors []Person
+
+	for _, character := range characters {
+		for _, actor := range character.Actors {
+			if _, exists := mp[actor.ID]; !exists {
+				mp[actor.ID] = true
+				uniqueActors = append(uniqueActors, actor)
+			}
+		}
+	}
+	return uniqueActors
 }
