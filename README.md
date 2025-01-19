@@ -1,1 +1,1 @@
-# bangumi-components
+# bangumi-component

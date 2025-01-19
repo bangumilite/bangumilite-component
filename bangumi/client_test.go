@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-components/model"
+	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 )
 

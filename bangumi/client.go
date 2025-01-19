@@ -6,7 +6,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-components/model"
+	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 	"strings"
 	"time"

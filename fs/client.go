@@ -5,7 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-components/model"
+	"github.com/sstp105/bangumi-component/model"
 	"google.golang.org/api/option"
 	"os"
 )
