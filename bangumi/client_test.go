@@ -27,10 +27,10 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 
 	Describe("GetSubject", func() {
 		mockAccessToken := "<MOCK_ACCESS_TOKEN>"
-		mockSubjectID := "1"
+		mockSubjectID := 1
 
 		It("returns error if request returns error", func() {
-			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%s", mockSubjectID),
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", mockSubjectID),
 				func(req *http.Request) (*http.Response, error) {
 					resp := httpmock.NewStringResponse(404, `
 						{
@@ -51,7 +51,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 		})
 
 		It("returns error if cannot parse the response", func() {
-			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%s", mockSubjectID),
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", mockSubjectID),
 				func(req *http.Request) (*http.Response, error) {
 					resp := httpmock.NewStringResponse(200, `
 						{
@@ -71,7 +71,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 		})
 
 		It("returns the subject if request succeed", func() {
-			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%s", mockSubjectID),
+			httpmock.RegisterResponder("GET", fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", mockSubjectID),
 				func(req *http.Request) (*http.Response, error) {
 					resp := httpmock.NewStringResponse(200, `
 						{

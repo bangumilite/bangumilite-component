@@ -28,11 +28,10 @@ type Client struct {
 	logger *logrus.Logger
 }
 
-var ErrInvalidRunningEnvironment = errors.New("invalid environment variable")
 var ErrDocumentDoesNotExist = errors.New("document does not exist")
 
 // New creates a new Firestore client.
-func New(ctx context.Context, logger *logrus.Logger, option option.ClientOption) (*Client, error) {
+func New(ctx context.Context, logger *logrus.Logger, option ...option.ClientOption) (*Client, error) {
 	var fs *firestore.Client
 	var err error
 
@@ -40,10 +39,8 @@ func New(ctx context.Context, logger *logrus.Logger, option option.ClientOption)
 	switch env {
 	case string(model.Production):
 		fs, err = firestore.NewClient(ctx, FirebaseProjectID)
-	case string(model.Local):
-		fs, err = firestore.NewClient(ctx, FirebaseProjectID, option)
 	default:
-		return nil, ErrInvalidRunningEnvironment
+		fs, err = firestore.NewClient(ctx, FirebaseProjectID, option...)
 	}
 
 	if err != nil {
@@ -81,6 +78,22 @@ func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, ref
 		BangumiAccessTokenKey:           accessToken,
 		BangumiRefreshTokenKey:          refreshToken,
 		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
+	}
+
+	err := saveDocument(ctx, docRef, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.TrendingSubject) error {
+	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
+
+	data := map[string]interface{}{
+		"data":            subjects,
+		"lastUpdatedDate": firestore.ServerTimestamp,
 	}
 
 	err := saveDocument(ctx, docRef, data)

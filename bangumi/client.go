@@ -16,16 +16,11 @@ var DefaultMaxRetries = 3
 var DefaultInitialDelay = time.Duration(5) * time.Second
 var DefaultMaxDelay = time.Duration(60) * time.Second
 
-type Path string
-
 const (
 	Host string = "https://bangumi.tv"
 
-	APIBaseURL    string = ""
-	MonoPath      Path   = "mono"
-	CharacterPath Path   = "character"
-	PersonPath    Path   = "person"
-
+	APIBaseURL string = ""
+	
 	UserAgent                     = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 	ApplicationJsonContentType    = "application/json"
 	ApplicationFormUrlencodedType = "application/x-www-form-urlencoded"
@@ -85,8 +80,8 @@ func NewWithConfig(logger *logrus.Logger, cfg *ClientConfig) *Client {
 	}
 }
 
-func (c *Client) GetSubject(ctx context.Context, id string, accessToken string) (*model.Subject, error) {
-	url := fmt.Sprintf("https://api.bgm.tv/v0/subjects/%s", id)
+func (c *Client) GetSubject(ctx context.Context, id int, accessToken string) (*model.Subject, error) {
+	url := fmt.Sprintf("https://api.bgm.tv/v0/subjects/%d", id)
 
 	subject := model.Subject{}
 	resp, err := c.client.R().
@@ -104,7 +99,7 @@ func (c *Client) GetSubject(ctx context.Context, id string, accessToken string) 
 
 	if resp.IsError() {
 		errResp := resp.Error().(*model.BangumiGenericErrorResponse)
-		return nil, fmt.Errorf("failed to get subject %s, status code:%d, error:%s,%s",
+		return nil, fmt.Errorf("failed to get subject %d, status code:%d, error:%s,%s",
 			id,
 			resp.StatusCode(),
 			errResp.Title,
@@ -149,7 +144,7 @@ func (c *Client) RefreshAccessToken(ctx context.Context, token model.BangumiToke
 	return &tokenResp, nil
 }
 
-func (c *Client) GetHTML(ctx context.Context, path Path) (*goquery.Document, error) {
+func (c *Client) GetHTML(ctx context.Context, path string) (*goquery.Document, error) {
 	url := fmt.Sprintf("%s/%s", Host, path)
 
 	resp, err := c.client.R().
