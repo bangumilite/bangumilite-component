@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-component/fs"
+	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 )
 
@@ -138,7 +138,7 @@ var _ = Describe("Bangumi API Unit Tests", func() {
 	})
 
 	Describe("RefreshAccessToken", func() {
-		mockToken := fs.BangumiToken{
+		mockToken := model.FirestoreBangumiToken{
 			AccessToken:  "<ACCESS_TOKEN>",
 			RefreshToken: "<REFRESH_TOKEN>",
 			ClientID:     "<CLIENT_ID>",

@@ -10,7 +10,7 @@ import (
 )
 
 // ParseSubjectIDs extracts unique subject IDs from the given document.
-func ParseSubjectIDs(doc *goquery.Document) ([]int, error) {
+func ParseSubjectIDs(doc *goquery.Document) []int {
 	var ids []int
 
 	doc.Find("ul#browserItemList li a[href^='/subject/']").Each(func(i int, s *goquery.Selection) {
@@ -25,7 +25,7 @@ func ParseSubjectIDs(doc *goquery.Document) ([]int, error) {
 
 	uniqueIDs := utils.RemoveDuplicates(ids)
 
-	return uniqueIDs, nil
+	return uniqueIDs
 }
 
 // getID extracts an ID from a URL-like string (href) in the form of "/<type>/127791".

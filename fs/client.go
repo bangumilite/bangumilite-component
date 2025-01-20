@@ -62,10 +62,10 @@ func (c *Client) Close() error {
 }
 
 // GetBangumiToken retrieves bangumi tokens that can be used to call bangumi API.
-func (c *Client) GetBangumiToken(ctx context.Context) (*BangumiToken, error) {
+func (c *Client) GetBangumiToken(ctx context.Context) (*model.FirestoreBangumiToken, error) {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
-	data, err := getDocument[BangumiToken](ctx, docRef)
+	data, err := getDocument[model.FirestoreBangumiToken](ctx, docRef)
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +103,28 @@ func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, ref
 	return nil
 }
 
-func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []TrendingSubject) error {
+func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.FirestoreTrendingSubject) error {
 	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
 
 	data := map[string]interface{}{
 		"data":            subjects,
 		"lastUpdatedDate": firestore.ServerTimestamp,
+	}
+
+	err := saveDocument(ctx, docRef, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects []model.FirestoreSeasonSubject) error {
+	docRef := c.fs.Collection("season").Doc(id)
+
+	data := map[string]interface{}{
+		"data":  subjects,
+		"total": len(subjects),
 	}
 
 	err := saveDocument(ctx, docRef, data)

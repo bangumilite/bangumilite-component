@@ -6,8 +6,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"github.com/sstp105/bangumi-component/fs"
 	"github.com/sstp105/bangumi-component/httplib"
+	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 	"strings"
 	"sync"
@@ -48,35 +48,35 @@ func NewClient(logger *logrus.Logger) *Client {
 	}
 }
 
-func (c *Client) GetSubjects(ctx context.Context, ids []int) ([]Subject, error) {
+func (c *Client) GetSubjects(ctx context.Context, ids []int) ([]model.BangumiSubject, error) {
 	return c.GetSubjectsWithAccessToken(ctx, ids, "")
 }
 
-func (c *Client) GetSubjectsWithAccessToken(ctx context.Context, ids []int, accessToken string) ([]Subject, error) {
-	return concurrentFetch(ctx, ids, func(ctx context.Context, id int) (Subject, error) {
+func (c *Client) GetSubjectsWithAccessToken(ctx context.Context, ids []int, accessToken string) ([]model.BangumiSubject, error) {
+	return concurrentFetch(ctx, ids, func(ctx context.Context, id int) (model.BangumiSubject, error) {
 		subject, err := c.GetSubjectWithAccessToken(ctx, id, accessToken)
 		if err != nil {
-			return Subject{}, err
+			return model.BangumiSubject{}, err
 		}
 
 		return *subject, nil
 	})
 }
 
-func (c *Client) GetSubject(ctx context.Context, id int) (*Subject, error) {
+func (c *Client) GetSubject(ctx context.Context, id int) (*model.BangumiSubject, error) {
 	return c.GetSubjectWithAccessToken(ctx, id, "")
 }
 
-func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessToken string) (*Subject, error) {
+func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessToken string) (*model.BangumiSubject, error) {
 	url := apiURL(APIPathGetSubject, id)
-	subject := Subject{}
+	subject := model.BangumiSubject{}
 
 	req := c.client.R().
 		SetContext(ctx).
 		SetHeader("User-Agent", UserAgentHeader).
 		SetHeader("Content-Type", ContentTypeJSON).
 		SetResult(&subject).
-		SetError(GenericErrorResponse{})
+		SetError(model.BangumiGenericErrorResponse{})
 
 	if accessToken != "" {
 		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken))
@@ -94,16 +94,16 @@ func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessTo
 	return &subject, nil
 }
 
-func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]RelatedCharacter, error) {
+func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]model.BangumiRelatedCharacter, error) {
 	url := apiURL(APIPathGetSubjectCharacters, id)
-	var characters []RelatedCharacter
+	var characters []model.BangumiRelatedCharacter
 
 	resp, err := c.client.R().
 		SetContext(ctx).
 		SetHeader("User-Agent", UserAgentHeader).
 		SetHeader("Content-Type", ContentTypeJSON).
 		SetResult(&characters).
-		SetError(GenericErrorResponse{}).
+		SetError(model.BangumiGenericErrorResponse{}).
 		Get(url)
 
 	if err != nil {
@@ -117,8 +117,8 @@ func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]RelatedCha
 	return characters, nil
 }
 
-func (c *Client) RefreshAccessToken(ctx context.Context, token fs.BangumiToken) (*OAuthResponse, error) {
-	tokenResp := OAuthResponse{}
+func (c *Client) RefreshAccessToken(ctx context.Context, token model.FirestoreBangumiToken) (*model.BangumiOAuthResponse, error) {
+	tokenResp := model.BangumiOAuthResponse{}
 	formData := map[string]string{
 		"grant_type":    "refresh_token",
 		"client_id":     token.ClientID,
@@ -132,7 +132,7 @@ func (c *Client) RefreshAccessToken(ctx context.Context, token fs.BangumiToken) 
 		SetHeader("Content-Type", ContentTypeFormURLEncoded).
 		SetFormData(formData).
 		SetResult(&tokenResp).
-		SetError(OAuthErrorResponse{}).
+		SetError(model.BangumiOAuthErrorResponse{}).
 		Post(OAuthURL)
 
 	if err != nil {
@@ -178,10 +178,10 @@ func apiURL(p APIPath, args ...interface{}) string {
 func handleError(resp *resty.Response, path string, errorType APIError) error {
 	switch errorType {
 	case ErrorOAuth:
-		errResp := resp.Error().(*OAuthErrorResponse)
+		errResp := resp.Error().(*model.BangumiOAuthErrorResponse)
 		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Error, errResp.ErrorDescription))
 	case ErrorGeneric:
-		errResp := resp.Error().(*GenericErrorResponse)
+		errResp := resp.Error().(*model.BangumiGenericErrorResponse)
 		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Title, errResp.Description))
 	default:
 		return fmt.Errorf("unexpected error type: %s", errorType)
@@ -242,20 +242,22 @@ func concurrentFetch[T any](
 	return results, nil
 }
 
-// removeDuplicateActorsFromCharacters removes duplicate actors from a list of subject related characters,
-// An actor could act more than one character in one subject.
-// The function is useful when the caller need to get unique actors (CV) for information purpose.
-func removeDuplicateActorsFromCharacters(characters []RelatedCharacter) []Person {
+func GetVoiceActorsFromCharacters(characters []model.BangumiRelatedCharacter) []model.BangumiPerson {
 	mp := make(map[int]bool)
-	var uniqueActors []Person
+	var actors []model.BangumiPerson
 
 	for _, character := range characters {
 		for _, actor := range character.Actors {
 			if _, exists := mp[actor.ID]; !exists {
 				mp[actor.ID] = true
-				uniqueActors = append(uniqueActors, actor)
+				actors = append(actors, actor)
 			}
 		}
 	}
-	return uniqueActors
+
+	if len(actors) < 5 {
+		return actors
+	}
+
+	return actors[:5]
 }

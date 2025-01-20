@@ -28,7 +28,7 @@ var _ = Describe("string_utils unit tests", func() {
 
 		It("should return 100.0 for same string", func() {
 			a := "進撃の巨人 Season3"
-			b := "進撃の巨人 Season 3"
+			b := "進撃の巨人 SeasonCN 3"
 
 			got := IsMatch(a, b, similarity)
 
