@@ -35,3 +35,12 @@ type FirestoreTrailer struct {
 	URL       string `json:"url" firestore:"url"`
 	Thumbnail string `json:"thumbnail" firestore:"thumbnail"`
 }
+
+type FirestoreSeasonIndexDocument struct {
+	Data []FirestoreSeasonIndexItem `firestore:"data" json:"data"`
+}
+
+type FirestoreSeasonIndexItem struct {
+	ID    string `firestore:"id" json:"id"`
+	Image string `firestore:"image" json:"image"`
+}

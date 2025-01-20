@@ -17,6 +17,9 @@ const (
 	TokenCollectionKey           = "token"
 	TokenCollectionBangumiDocKey = "bangumi"
 
+	SeasonCollectionKey         = "season"
+	SeasonCollectionIndexDocKey = "index"
+
 	MailgunDocumentKey = "mailgun"
 
 	BangumiAccessTokenKey  = "access_token"
@@ -83,6 +86,33 @@ func (c *Client) GetMailgunConfig(ctx context.Context) (*mailer.MailgunConfig, e
 	}
 
 	return data, nil
+}
+
+func (c *Client) GetSeasonIndex(ctx context.Context) (*model.FirestoreSeasonIndexDocument, error) {
+	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
+
+	data, err := getDocument[model.FirestoreSeasonIndexDocument](ctx, docRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreSeasonIndexItem) error {
+	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
+
+	data := map[string]interface{}{
+		"data":            items,
+		"lastUpdatedDate": firestore.ServerTimestamp,
+	}
+
+	err := saveDocument(ctx, docRef, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UpdateBangumiToken overrides access_token and refresh_token with new valid tokens.
