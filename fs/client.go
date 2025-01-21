@@ -103,8 +103,8 @@ func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreS
 	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
 
 	data := map[string]interface{}{
-		"data":            items,
-		"lastUpdatedDate": firestore.ServerTimestamp,
+		"data":                          items,
+		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
 	}
 
 	err := saveDocument(ctx, docRef, data)
@@ -137,8 +137,8 @@ func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID strin
 	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
 
 	data := map[string]interface{}{
-		"data":            subjects,
-		"lastUpdatedDate": firestore.ServerTimestamp,
+		"data":                          subjects,
+		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
 	}
 
 	err := saveDocument(ctx, docRef, data)
@@ -153,8 +153,9 @@ func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects
 	docRef := c.fs.Collection("season").Doc(id)
 
 	data := map[string]interface{}{
-		"data":  subjects,
-		"total": len(subjects),
+		"data":                          subjects,
+		"total":                         len(subjects),
+		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
 	}
 
 	err := saveDocument(ctx, docRef, data)
