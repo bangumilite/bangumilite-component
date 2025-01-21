@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/go-resty/resty/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/sstp105/bangumi-component/httplib"
 	"github.com/sstp105/bangumi-component/model"
 	"net/http"
@@ -36,15 +35,13 @@ const (
 
 type Client struct {
 	client *resty.Client
-	logger *logrus.Logger
 }
 
-func NewClient(logger *logrus.Logger) *Client {
+func NewClient() *Client {
 	client := httplib.NewClient()
 
 	return &Client{
 		client: client,
-		logger: logger,
 	}
 }
 

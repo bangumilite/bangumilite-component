@@ -4,7 +4,6 @@ import (
 	"cloud.google.com/go/firestore"
 	"context"
 	"errors"
-	"github.com/sirupsen/logrus"
 	"github.com/sstp105/bangumi-component/mailer"
 	"github.com/sstp105/bangumi-component/model"
 	"google.golang.org/api/option"
@@ -30,14 +29,13 @@ const (
 
 // Client is a wrapper around the Firestore client and providing additional logging
 type Client struct {
-	fs     *firestore.Client
-	logger *logrus.Logger
+	fs *firestore.Client
 }
 
 var ErrDocumentDoesNotExist = errors.New("document does not exist")
 
 // New creates a new Firestore client.
-func New(ctx context.Context, logger *logrus.Logger, option ...option.ClientOption) (*Client, error) {
+func New(ctx context.Context) (*Client, error) {
 	var fs *firestore.Client
 	var err error
 
@@ -46,7 +44,7 @@ func New(ctx context.Context, logger *logrus.Logger, option ...option.ClientOpti
 	case string(model.Production):
 		fs, err = firestore.NewClient(ctx, FirebaseProjectID)
 	default:
-		fs, err = firestore.NewClient(ctx, FirebaseProjectID, option...)
+		fs, err = firestore.NewClient(ctx, FirebaseProjectID, option.WithCredentialsFile("service_account.json"))
 	}
 
 	if err != nil {
@@ -54,8 +52,7 @@ func New(ctx context.Context, logger *logrus.Logger, option ...option.ClientOpti
 	}
 
 	return &Client{
-		fs:     fs,
-		logger: logger,
+		fs: fs,
 	}, nil
 }
 

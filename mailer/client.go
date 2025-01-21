@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"github.com/mailgun/mailgun-go/v4"
-	"github.com/sirupsen/logrus"
 )
 
 type MailgunConfig struct {
@@ -17,12 +16,11 @@ type MailgunConfig struct {
 // Client is a wrapper around the Firestore client and providing additional logging
 type Client struct {
 	cfg     *MailgunConfig
-	logger  *logrus.Logger
 	mailgun *mailgun.MailgunImpl
 }
 
 // New creates a new mailer client.
-func New(cfg *MailgunConfig, logger *logrus.Logger) (*Client, error) {
+func New(cfg *MailgunConfig) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("mailgun config cannot be empty")
 	}
@@ -31,7 +29,6 @@ func New(cfg *MailgunConfig, logger *logrus.Logger) (*Client, error) {
 
 	return &Client{
 		cfg:     cfg,
-		logger:  logger,
 		mailgun: m,
 	}, nil
 }
@@ -50,7 +47,6 @@ func (c *Client) NotifyRecipients(ctx context.Context, subject string, message s
 
 	status, id, err := c.mailgun.Send(ctx, m)
 	if err != nil {
-		c.logger.Errorf("failed to notify recipients, error:%s", err.Error())
 		return "", "", err
 	}
 

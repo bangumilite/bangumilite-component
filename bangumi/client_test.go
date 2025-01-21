@@ -7,20 +7,17 @@ import (
 	_ "github.com/jarcoal/httpmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 )
 
 var _ = Describe("Bangumi API Unit Tests", func() {
 	var (
-		logger *logrus.Logger
 		client *Client
 	)
 
 	BeforeEach(func() {
-		logger = logrus.New()
-		client = NewClient(logger)
+		client = NewClient()
 
 		httpmock.ActivateNonDefault(client.client.GetClient())
 	})
