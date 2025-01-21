@@ -20,12 +20,12 @@ const (
 )
 
 type GCPHandler struct {
-	serviceName   string
-	environment   model.Environment
-	logger        *logrus.Logger
-	bangumiClient *bangumi.Client
-	fsClient      *fs.Client
-	mailerClient  *mailer.Client
+	Logger          *logrus.Logger
+	BangumiClient   *bangumi.Client
+	FirestoreClient *fs.Client
+	MailerClient    *mailer.Client
+	serviceName     string
+	environment     model.Environment
 }
 
 type Option func(h *GCPHandler)
@@ -74,11 +74,11 @@ func New(options ...Option) (*GCPHandler, error) {
 	}
 
 	h := &GCPHandler{
-		environment:   env,
-		logger:        logger,
-		bangumiClient: bangumiClient,
-		fsClient:      fsClient,
-		mailerClient:  mailerClient,
+		environment:     env,
+		Logger:          logger,
+		BangumiClient:   bangumiClient,
+		FirestoreClient: fsClient,
+		MailerClient:    mailerClient,
 	}
 
 	// apply caller passed custom options
@@ -89,12 +89,12 @@ func New(options ...Option) (*GCPHandler, error) {
 	return h, nil
 }
 
-func (h *GCPHandler) Sync(ctx context.Context, processFunc func(ctx context.Context) error) error {
+func Sync(ctx context.Context, h *GCPHandler, processFunc func(ctx context.Context, h *GCPHandler) error) error {
 	start := time.Now()
 
-	h.logger.Infof("%s triggered, env: %s", h.serviceName, h.environment)
+	h.Logger.Infof("%s triggered, env: %s", h.serviceName, h.environment)
 
-	err := processFunc(ctx)
+	err := processFunc(ctx, h)
 
 	if err != nil {
 		h.sendEmails(ctx, err)
@@ -102,7 +102,8 @@ func (h *GCPHandler) Sync(ctx context.Context, processFunc func(ctx context.Cont
 	}
 
 	duration := time.Since(start)
-	h.logger.Infof("%s completed, total execuation time:%s", h.serviceName, duration)
+
+	h.Logger.Infof("%s completed, total execuation time:%s", h.serviceName, duration)
 
 	return nil
 }
@@ -115,8 +116,16 @@ func WithServiceName(name string) Option {
 
 func WithLogLevel(level logrus.Level) Option {
 	return func(h *GCPHandler) {
-		h.logger.SetLevel(level)
+		h.Logger.SetLevel(level)
 	}
+}
+
+func (h *GCPHandler) GetEnvironment() model.Environment {
+	return h.environment
+}
+
+func (h *GCPHandler) GetServiceName() string {
+	return h.serviceName
 }
 
 func (h *GCPHandler) sendEmails(ctx context.Context, e error) {
@@ -125,9 +134,9 @@ func (h *GCPHandler) sendEmails(ctx context.Context, e error) {
 	subject := fmt.Sprintf("%s Failed - %s", h.serviceName, date)
 	message := fmt.Sprintf("Please visit Google Cloud > Logs for more details. Error: %s", e.Error())
 
-	_, _, err := h.mailerClient.NotifyRecipients(ctx, subject, message)
+	_, _, err := h.MailerClient.NotifyRecipients(ctx, subject, message)
 	if err != nil {
-		h.logger.Errorf("error sending emails to recipients, error:%s", err)
+		h.Logger.Errorf("error sending emails to recipients, error:%s", err)
 
 		// fallthrough if unable to send emails to recipients
 	}
