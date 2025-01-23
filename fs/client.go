@@ -19,6 +19,8 @@ const (
 	SeasonCollectionKey         = "season"
 	SeasonCollectionIndexDocKey = "index"
 
+	MonoCollectionKey = "mono"
+
 	DiscoveryCollectionKey = "discovery"
 
 	MailgunDocumentKey = "mailgun"
@@ -97,6 +99,21 @@ func (c *Client) GetSeasonIndex(ctx context.Context) (*model.FirestoreSeasonInde
 	}
 
 	return data, nil
+}
+
+func (c *Client) UpdateMonoDocument(ctx context.Context, monoType model.MonoType, data model.FirestoreMonoDocument) error {
+	docRef := c.fs.Collection(MonoCollectionKey).Doc(string(monoType))
+	docData := map[string]interface{}{
+		"data":                          data,
+		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
+	}
+
+	err := saveDocument(ctx, docRef, docData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // UpdateSeasonIndex updates season index document data field.

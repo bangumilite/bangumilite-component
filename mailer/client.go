@@ -3,7 +3,10 @@ package mailer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/mailgun/mailgun-go/v4"
+	"github.com/sstp105/bangumi-component/utils"
+	"time"
 )
 
 type MailgunConfig struct {
@@ -51,4 +54,16 @@ func (c *Client) NotifyRecipients(ctx context.Context, subject string, message s
 	}
 
 	return status, id, nil
+}
+
+func (c *Client) SendGoogleCloudFailureEmails(ctx context.Context, serviceName string, e error) {
+	date := time.Now().Format(utils.YYYYMMDDDateFormatter)
+
+	subject := fmt.Sprintf("%s Failed - %s", serviceName, date)
+	message := fmt.Sprintf("Please visit Google Cloud > Logs for more details. Error: %s", e.Error())
+
+	_, _, err := c.NotifyRecipients(ctx, subject, message)
+	if err != nil {
+		fmt.Printf("error sending emails to recipients:%s", err.Error())
+	}
 }

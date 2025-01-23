@@ -20,6 +20,8 @@ const (
 	APIBaseURL  string = "https://api.bgm.tv"                // For bangumi RESTful APIs
 	OAuthURL    string = "https://bgm.tv/oauth/access_token" // For bangumi OAuth flow
 
+	MonoPath string = "/mono"
+
 	UserAgentHeader           = "sstp105/bangumi-services (GCP; Golang; Private Project)"
 	ContentTypeJSON           = "application/json"
 	ContentTypeFormURLEncoded = "application/x-www-form-urlencoded"
