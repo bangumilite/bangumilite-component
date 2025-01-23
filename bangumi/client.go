@@ -144,7 +144,7 @@ func (c *Client) RefreshAccessToken(ctx context.Context, token model.FirestoreBa
 }
 
 func (c *Client) GetHTML(ctx context.Context, path string) (*goquery.Document, error) {
-	url := fmt.Sprintf("%s/%s", HTMLBaseURL, path)
+	url := fmt.Sprintf("%s%s", HTMLBaseURL, path)
 
 	resp, err := c.client.R().
 		SetContext(ctx).

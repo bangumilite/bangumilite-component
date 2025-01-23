@@ -81,3 +81,41 @@ type BangumiGenericErrorResponse struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
+
+type SubjectTypeID string
+
+const (
+	BookID  SubjectTypeID = "1"
+	AnimeID SubjectTypeID = "2"
+	MusicID SubjectTypeID = "3"
+	GameID  SubjectTypeID = "4"
+	RealID  SubjectTypeID = "6"
+)
+
+type BangumiSubjectType struct {
+	ID   string
+	Type SubjectTypeID
+}
+
+var BangumiSubjectTypes = [5]BangumiSubjectType{
+	{
+		ID:   string(BookID),
+		Type: "book",
+	},
+	{
+		ID:   string(AnimeID),
+		Type: "anime",
+	},
+	{
+		ID:   string(MusicID),
+		Type: "music",
+	},
+	{
+		ID:   string(GameID),
+		Type: "game",
+	},
+	{
+		ID:   string(RealID),
+		Type: "real",
+	},
+}

@@ -5,6 +5,14 @@ import (
 	"time"
 )
 
+func GetYear() int {
+	return time.Now().Year()
+}
+
+func GetMonth() int {
+	return int(time.Now().Month())
+}
+
 // Season -
 type Season struct {
 	ID       string `json:"id"`        // 202501
@@ -14,6 +22,8 @@ type Season struct {
 }
 
 const (
+	YYYYMMDDDateFormatter = "2006-01-02"
+
 	WinterSeasonCN = "冬"
 	SpringSeasonCN = "春"
 	SummerSeasonCN = "夏"

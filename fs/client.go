@@ -19,6 +19,8 @@ const (
 	SeasonCollectionKey         = "season"
 	SeasonCollectionIndexDocKey = "index"
 
+	DiscoveryCollectionKey = "discovery"
+
 	MailgunDocumentKey = "mailgun"
 
 	BangumiAccessTokenKey  = "access_token"
@@ -85,6 +87,7 @@ func (c *Client) GetMailgunConfig(ctx context.Context) (*mailer.MailgunConfig, e
 	return data, nil
 }
 
+// GetSeasonIndex retrieves season index document from firestore.
 func (c *Client) GetSeasonIndex(ctx context.Context) (*model.FirestoreSeasonIndexDocument, error) {
 	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
 
@@ -96,6 +99,7 @@ func (c *Client) GetSeasonIndex(ctx context.Context) (*model.FirestoreSeasonInde
 	return data, nil
 }
 
+// UpdateSeasonIndex updates season index document data field.
 func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreSeasonIndexItem) error {
 	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
 
@@ -112,7 +116,7 @@ func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreS
 	return nil
 }
 
-// UpdateBangumiToken overrides access_token and refresh_token with new valid tokens.
+// UpdateBangumiToken updates Bangumi access_token and refresh_token with new valid tokens.
 func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, refreshToken string) error {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
@@ -130,7 +134,8 @@ func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, ref
 	return nil
 }
 
-func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.FirestoreTrendingSubject) error {
+// UpdateTrendingSubjects updates daily trending subjects for a given subject type
+func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.FirestoreSubject) error {
 	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
 
 	data := map[string]interface{}{
@@ -146,6 +151,7 @@ func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID strin
 	return nil
 }
 
+// UpdateSeasonalSubjects saves the seasonal subjects under season collection.
 func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects []model.FirestoreSeasonSubject) error {
 	docRef := c.fs.Collection("season").Doc(id)
 
@@ -156,6 +162,23 @@ func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects
 	}
 
 	err := saveDocument(ctx, docRef, data)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// UpdateDiscoverySubjects updates discovery subjects given subject type id.
+func (c *Client) UpdateDiscoverySubjects(ctx context.Context, id model.SubjectTypeID, data []model.FirestoreDiscoverySubject) error {
+	docRef := c.fs.Collection(DiscoveryCollectionKey).Doc(string(id))
+
+	docData := map[string]interface{}{
+		"data":                          data,
+		FirebaseLastUpdatedTimestampKey: firestore.ServerTimestamp,
+	}
+
+	err := saveDocument(ctx, docRef, docData)
 	if err != nil {
 		return err
 	}
