@@ -21,6 +21,10 @@ type Season struct {
 	Year     string `json:"year"`      // 2025
 }
 
+func (s Season) ToString() string {
+	return fmt.Sprintf("ID:%s, SeasonCN:%s, Month:%s, Year:%s", s.ID, s.SeasonCN, s.Month, s.Year)
+}
+
 const (
 	YYYYMMDDDateFormatter = "2006-01-02"
 
