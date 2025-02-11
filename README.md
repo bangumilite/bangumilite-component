@@ -1,5 +1,7 @@
-# bangumi-component
+# bangumilite-component
+
+Golang shared packages for backend services.
 
 ```sh
-go get github.com/sstp105/bangumi-component@v1.0.0
+go get github.com/bangumilite/bangumilite-component@v1.0.0
 ```
