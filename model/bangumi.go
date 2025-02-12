@@ -51,8 +51,8 @@ func (t BangumiTags) ToString() string {
 }
 
 type BangumiRating struct {
-	Rank  int `json:"rank" firestore:"rank"`
-	Score float64
+	Rank  int     `json:"rank" firestore:"rank"`
+	Score float64 `json:"score" firestore:"score"`
 }
 
 type BangumiRelatedCharacter struct {
@@ -91,31 +91,3 @@ const (
 	GameID  SubjectTypeID = "4"
 	RealID  SubjectTypeID = "6"
 )
-
-type BangumiSubjectType struct {
-	ID   string
-	Type SubjectTypeID
-}
-
-var BangumiSubjectTypes = [5]BangumiSubjectType{
-	{
-		ID:   string(BookID),
-		Type: "book",
-	},
-	{
-		ID:   string(AnimeID),
-		Type: "anime",
-	},
-	{
-		ID:   string(MusicID),
-		Type: "music",
-	},
-	{
-		ID:   string(GameID),
-		Type: "game",
-	},
-	{
-		ID:   string(RealID),
-		Type: "real",
-	},
-}

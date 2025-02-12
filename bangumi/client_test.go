@@ -3,11 +3,11 @@ package bangumi
 import (
 	"context"
 	"fmt"
+	"github.com/bangumilite/bangumilite-component/model"
 	"github.com/jarcoal/httpmock"
 	_ "github.com/jarcoal/httpmock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 )
 

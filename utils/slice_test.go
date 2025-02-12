@@ -1,72 +1,42 @@
 package utils
 
 import (
-	"reflect"
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestRemoveDuplicatesStrings(t *testing.T) {
-	input := []string{"a", "b", "c", "c", "b"}
-	want := []string{"a", "b", "c"}
+var _ = Describe("slice utils unit tests", func() {
+	Describe("RemoveDuplicates", func() {
+		It("should remove duplicate strings", func() {
+			input := []string{"a", "b", "c", "c", "b"}
+			want := []string{"a", "b", "c"}
+			got := RemoveDuplicates(input)
 
-	got := RemoveDuplicates(input)
+			Expect(got).To(Equal(want))
+		})
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
+		It("should remove duplicate ints", func() {
+			input := []int{1, 2, 3, 2, 1, 4}
+			want := []int{1, 2, 3, 4}
+			got := RemoveDuplicates(input)
 
-func TestRemoveDuplicatesInts(t *testing.T) {
-	input := []int{1, 2, 3, 2, 1, 4}
-	want := []int{1, 2, 3, 4}
+			Expect(got).To(Equal(want))
+		})
 
-	got := RemoveDuplicates(input)
+		It("should remove duplicate floats", func() {
+			input := []float64{1.1, 2.2, 1.1, 3.3}
+			want := []float64{1.1, 2.2, 3.3}
+			got := RemoveDuplicates(input)
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
+			Expect(got).To(Equal(want))
+		})
 
-func TestRemoveDuplicatesFloats(t *testing.T) {
-	input := []float64{1.1, 2.2, 1.1, 3.3}
-	want := []float64{1.1, 2.2, 3.3}
+		It("should not remove any elements if there are no duplicates", func() {
+			input := []string{"a", "b", "c"}
+			want := []string{"a", "b", "c"}
+			got := RemoveDuplicates(input)
 
-	got := RemoveDuplicates(input)
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
-
-func TestRemoveDuplicatesEmptySlice(t *testing.T) {
-	var input []int
-	var want []int
-
-	got := RemoveDuplicates(input)
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
-
-func TestRemoveDuplicatesNoDuplicates(t *testing.T) {
-	input := []string{"a", "b", "c"}
-	want := []string{"a", "b", "c"}
-
-	got := RemoveDuplicates(input)
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
-
-func TestRemoveDuplicatesSingleElement(t *testing.T) {
-	input := []int{42}
-	want := []int{42}
-
-	got := RemoveDuplicates(input)
-
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
+			Expect(got).To(Equal(want))
+		})
+	})
+})

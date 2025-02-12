@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
+	"github.com/bangumilite/bangumilite-component/httplib"
+	"github.com/bangumilite/bangumilite-component/model"
 	"github.com/go-resty/resty/v2"
-	"github.com/sstp105/bangumi-component/httplib"
-	"github.com/sstp105/bangumi-component/model"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,19 +14,23 @@ import (
 
 type APIPath string
 type APIError string
+type GrantType string
+type RequestOption func(req *resty.Request)
 
 const (
-	HTMLBaseURL string = "https://bangumi.tv"                // For scraping HTML content
-	APIBaseURL  string = "https://api.bgm.tv"                // For bangumi RESTful APIs
-	OAuthURL    string = "https://bgm.tv/oauth/access_token" // For bangumi OAuth flow
+	HTMLBaseURL string = "https://bangumi.tv"
+	APIBaseURL  string = "https://api.bgm.tv"
+	OAuthURL    string = "https://bgm.tv/oauth/access_token"
+
+	RefreshToken GrantType = "refresh_token"
 
 	MonoPath string = "/mono"
 
-	UserAgentHeader           = "sstp105/bangumi-services (GCP; Golang; Private Project)"
+	UserAgentHeader           = "github.com/bangumilite (GCP; Golang; Private Project)"
 	ContentTypeJSON           = "application/json"
 	ContentTypeFormURLEncoded = "application/x-www-form-urlencoded"
 
-	MaxConcurrentGoroutines = 10 // Max goroutines for concurrent API calls
+	MaxConcurrentGoroutines = 10
 
 	APIPathGetSubject           APIPath = "/v0/subjects/%d"
 	APIPathGetSubjectCharacters APIPath = "/v0/subjects/%d/characters"
@@ -41,19 +45,14 @@ type Client struct {
 
 func NewClient() *Client {
 	client := httplib.NewClient()
-
 	return &Client{
 		client: client,
 	}
 }
 
-func (c *Client) GetSubjects(ctx context.Context, ids []int) ([]model.BangumiSubject, error) {
-	return c.GetSubjectsWithAccessToken(ctx, ids, "")
-}
-
-func (c *Client) GetSubjectsWithAccessToken(ctx context.Context, ids []int, accessToken string) ([]model.BangumiSubject, error) {
-	return concurrentFetch(ctx, ids, func(ctx context.Context, id int) (model.BangumiSubject, error) {
-		subject, err := c.GetSubjectWithAccessToken(ctx, id, accessToken)
+func (c *Client) GetSubjects(ctx context.Context, ids []int, opts ...RequestOption) ([]model.BangumiSubject, error) {
+	return batchFetch(ctx, ids, func(ctx context.Context, id int) (model.BangumiSubject, error) {
+		subject, err := c.GetSubject(ctx, id, opts...)
 		if err != nil {
 			return model.BangumiSubject{}, err
 		}
@@ -62,11 +61,7 @@ func (c *Client) GetSubjectsWithAccessToken(ctx context.Context, ids []int, acce
 	})
 }
 
-func (c *Client) GetSubject(ctx context.Context, id int) (*model.BangumiSubject, error) {
-	return c.GetSubjectWithAccessToken(ctx, id, "")
-}
-
-func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessToken string) (*model.BangumiSubject, error) {
+func (c *Client) GetSubject(ctx context.Context, id int, opts ...RequestOption) (*model.BangumiSubject, error) {
 	url := apiURL(APIPathGetSubject, id)
 	subject := model.BangumiSubject{}
 
@@ -77,9 +72,7 @@ func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessTo
 		SetResult(&subject).
 		SetError(model.BangumiGenericErrorResponse{})
 
-	if accessToken != "" {
-		req.SetHeader("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-	}
+	applyRequestOptions(req, opts...)
 
 	resp, err := req.Get(url)
 	if err != nil {
@@ -87,7 +80,7 @@ func (c *Client) GetSubjectWithAccessToken(ctx context.Context, id int, accessTo
 	}
 
 	if resp.IsError() {
-		return nil, handleError(resp, url, ErrorGeneric)
+		return nil, newAPIError(resp, url, ErrorGeneric)
 	}
 
 	return &subject, nil
@@ -110,7 +103,7 @@ func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]model.Bang
 	}
 
 	if resp.IsError() {
-		return nil, handleError(resp, url, ErrorGeneric)
+		return nil, newAPIError(resp, url, ErrorGeneric)
 	}
 
 	return characters, nil
@@ -119,7 +112,7 @@ func (c *Client) GetSubjectCharacters(ctx context.Context, id int) ([]model.Bang
 func (c *Client) RefreshAccessToken(ctx context.Context, token model.FirestoreBangumiToken) (*model.BangumiOAuthResponse, error) {
 	tokenResp := model.BangumiOAuthResponse{}
 	formData := map[string]string{
-		"grant_type":    "refresh_token",
+		"grant_type":    string(RefreshToken),
 		"client_id":     token.ClientID,
 		"client_secret": token.ClientSecret,
 		"redirect_uri":  token.RedirectURI,
@@ -139,7 +132,7 @@ func (c *Client) RefreshAccessToken(ctx context.Context, token model.FirestoreBa
 	}
 
 	if resp.IsError() {
-		return nil, handleError(resp, OAuthURL, ErrorOAuth)
+		return nil, newAPIError(resp, OAuthURL, ErrorOAuth)
 	}
 
 	return &tokenResp, nil
@@ -173,32 +166,7 @@ func apiURL(p APIPath, args ...interface{}) string {
 	return fmt.Sprintf(APIBaseURL+string(p), args...)
 }
 
-// handleError is a generic function to handle errors from bangumi API responses.
-func handleError(resp *resty.Response, path string, errorType APIError) error {
-	switch errorType {
-	case ErrorOAuth:
-		errResp := resp.Error().(*model.BangumiOAuthErrorResponse)
-		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Error, errResp.ErrorDescription))
-	case ErrorGeneric:
-		errResp := resp.Error().(*model.BangumiGenericErrorResponse)
-		return apiError(path, resp.StatusCode(), fmt.Sprintf("error:%s,details:%s", errResp.Title, errResp.Description))
-	default:
-		return fmt.Errorf("unexpected error type: %s", errorType)
-	}
-}
-
-func apiError(path string, statusCode int, message string) error {
-	return fmt.Errorf("failed to call %s, status code: %d, error: %s",
-		path,
-		statusCode,
-		message,
-	)
-}
-
-// concurrentFetch fetches data concurrently for a list of IDs using a provided fetch function.
-// It ensures that the fetches are limited by a maximum number of concurrent goroutines.
-// The function will wait for all fetches to complete and return the results.
-func concurrentFetch[T any](
+func batchFetch[T any](
 	ctx context.Context,
 	ids []int,
 	fetchFunc func(ctx context.Context, id int) (T, error),
@@ -239,24 +207,4 @@ func concurrentFetch[T any](
 	}
 
 	return results, nil
-}
-
-func GetVoiceActorsFromCharacters(characters []model.BangumiRelatedCharacter) []model.BangumiPerson {
-	mp := make(map[int]bool)
-	var actors []model.BangumiPerson
-
-	for _, character := range characters {
-		for _, actor := range character.Actors {
-			if _, exists := mp[actor.ID]; !exists {
-				mp[actor.ID] = true
-				actors = append(actors, actor)
-			}
-		}
-	}
-
-	if len(actors) < 5 {
-		return actors
-	}
-
-	return actors[:5]
 }

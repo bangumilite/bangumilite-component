@@ -2,6 +2,7 @@ package bangumi
 
 import (
 	"errors"
+	"github.com/bangumilite/bangumilite-component/model"
 	"strings"
 )
 
@@ -51,4 +52,24 @@ func Convert(from ImagePath, to ImagePath, src string) (*string, error) {
 
 	imageURL := strings.Replace(src, string(from), string(to), 1)
 	return &imageURL, nil
+}
+
+func GetVoiceActorsFromCharacters(characters []model.BangumiRelatedCharacter) []model.BangumiPerson {
+	mp := make(map[int]bool)
+	var actors []model.BangumiPerson
+
+	for _, character := range characters {
+		for _, actor := range character.Actors {
+			if _, exists := mp[actor.ID]; !exists {
+				mp[actor.ID] = true
+				actors = append(actors, actor)
+			}
+		}
+	}
+
+	if len(actors) < 5 {
+		return actors
+	}
+
+	return actors[:5]
 }

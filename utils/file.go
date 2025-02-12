@@ -5,7 +5,6 @@ import (
 	"os"
 )
 
-// SaveToJSON saves any struct type to a local JSON file.
 func SaveToJSON[T any](data T, fn string) error {
 	file, err := os.Create(fn)
 	if err != nil {

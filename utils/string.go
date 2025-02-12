@@ -14,9 +14,6 @@ func IsMatch(a, b string, s float64) bool {
 		return true
 	}
 
-	distance := levenshtein.ComputeDistance(a, b)
-
-	// calculate similarity based on rune counts
 	runeLenA := len([]rune(a))
 	runeLenB := len([]rune(b))
 	longerLength := runeLenA
@@ -24,12 +21,11 @@ func IsMatch(a, b string, s float64) bool {
 		longerLength = runeLenB
 	}
 
-	// avoid division by zero if both strings are empty after normalization
 	if longerLength == 0 {
 		return true
 	}
 
-	// calculate and return similarity percentage
+	distance := levenshtein.ComputeDistance(a, b)
 	similarity := (1.0 - float64(distance)/float64(longerLength)) * 100
 	if similarity < s {
 		return false

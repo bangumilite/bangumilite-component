@@ -4,8 +4,8 @@ import (
 	"cloud.google.com/go/firestore"
 	"context"
 	"errors"
-	"github.com/sstp105/bangumi-component/mailer"
-	"github.com/sstp105/bangumi-component/model"
+	"github.com/bangumilite/bangumilite-component/mailer"
+	"github.com/bangumilite/bangumilite-component/model"
 	"google.golang.org/api/option"
 	"os"
 )
@@ -31,14 +31,12 @@ const (
 	FirebaseLastUpdatedTimestampKey = "lastUpdatedDate"
 )
 
-// Client is a wrapper around the Firestore client and providing additional logging
+var ErrDocumentDoesNotExist = errors.New("document does not exist")
+
 type Client struct {
 	fs *firestore.Client
 }
 
-var ErrDocumentDoesNotExist = errors.New("document does not exist")
-
-// New creates a new Firestore client.
 func New(ctx context.Context) (*Client, error) {
 	var fs *firestore.Client
 	var err error
@@ -60,12 +58,10 @@ func New(ctx context.Context) (*Client, error) {
 	}, nil
 }
 
-// Close gives caller access to close the firestore client.
 func (c *Client) Close() error {
 	return c.fs.Close()
 }
 
-// GetBangumiToken retrieves bangumi tokens that can be used to call bangumi API.
 func (c *Client) GetBangumiToken(ctx context.Context) (*model.FirestoreBangumiToken, error) {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
@@ -77,7 +73,6 @@ func (c *Client) GetBangumiToken(ctx context.Context) (*model.FirestoreBangumiTo
 	return data, nil
 }
 
-// GetMailgunConfig retrieves the Mailgun related configuration from firestore.
 func (c *Client) GetMailgunConfig(ctx context.Context) (*mailer.MailgunConfig, error) {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(MailgunDocumentKey)
 
@@ -89,7 +84,6 @@ func (c *Client) GetMailgunConfig(ctx context.Context) (*mailer.MailgunConfig, e
 	return data, nil
 }
 
-// GetSeasonIndex retrieves season index document from firestore.
 func (c *Client) GetSeasonIndex(ctx context.Context) (*model.FirestoreSeasonIndexDocument, error) {
 	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
 
@@ -116,7 +110,6 @@ func (c *Client) UpdateMonoDocument(ctx context.Context, monoType model.MonoType
 	return nil
 }
 
-// UpdateSeasonIndex updates season index document data field.
 func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreSeasonIndexItem) error {
 	docRef := c.fs.Collection(SeasonCollectionKey).Doc(SeasonCollectionIndexDocKey)
 
@@ -133,7 +126,6 @@ func (c *Client) UpdateSeasonIndex(ctx context.Context, items []model.FirestoreS
 	return nil
 }
 
-// UpdateBangumiToken updates Bangumi access_token and refresh_token with new valid tokens.
 func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, refreshToken string) error {
 	docRef := c.fs.Collection(TokenCollectionKey).Doc(TokenCollectionBangumiDocKey)
 
@@ -151,7 +143,6 @@ func (c *Client) UpdateBangumiToken(ctx context.Context, accessToken string, ref
 	return nil
 }
 
-// UpdateTrendingSubjects updates daily trending subjects for a given subject type
 func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID string, subjects []model.FirestoreSubject) error {
 	docRef := c.fs.Collection("trending").Doc(subjectTypeID)
 
@@ -168,7 +159,6 @@ func (c *Client) UpdateTrendingSubjects(ctx context.Context, subjectTypeID strin
 	return nil
 }
 
-// UpdateSeasonalSubjects saves the seasonal subjects under season collection.
 func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects []model.FirestoreSeasonSubject) error {
 	docRef := c.fs.Collection("season").Doc(id)
 
@@ -186,7 +176,6 @@ func (c *Client) UpdateSeasonalSubjects(ctx context.Context, id string, subjects
 	return nil
 }
 
-// UpdateDiscoverySubjects updates discovery subjects given subject type id.
 func (c *Client) UpdateDiscoverySubjects(ctx context.Context, id model.SubjectTypeID, data []model.FirestoreDiscoverySubject) error {
 	docRef := c.fs.Collection(DiscoveryCollectionKey).Doc(string(id))
 
@@ -203,20 +192,6 @@ func (c *Client) UpdateDiscoverySubjects(ctx context.Context, id model.SubjectTy
 	return nil
 }
 
-// getDocument retrieves a Firestore document and unmarshal its data into a specified type.
-//
-// This function is generic and can be used to fetch and unmarshal documents into any struct type.
-//
-// Type Parameters:
-//   - T: The type into which the Firestore document data will be unmarshalled.
-//
-// Parameters:
-//   - ctx: The context for the Firestore operation.
-//   - docRef: A reference to the Firestore document to retrieve.
-//
-// Returns:
-//   - *T: A pointer to the unmarshalled result of type T, or nil if an error occurs.
-//   - error: An error if the operation fails or if the document does not exist.
 func getDocument[T any](ctx context.Context, docRef *firestore.DocumentRef) (*T, error) {
 	docSnap, err := docRef.Get(ctx)
 	if err != nil {
@@ -236,24 +211,6 @@ func getDocument[T any](ctx context.Context, docRef *firestore.DocumentRef) (*T,
 	return &result, nil
 }
 
-// saveDocument saves data to a Firestore document.
-//
-// This function updates the specified Firestore document with the provided data. If the document
-// does not exist, it will be created. The operation merges the provided data with any existing
-// fields in the document.
-//
-// Parameters:
-//   - ctx: The context for the Firestore operation.
-//   - docRef: A reference to the Firestore document to save or update.
-//   - data: A map of key-value pairs representing the data to save in the document.
-//
-// Returns:
-//   - error: An error if the operation fails, or nil if the operation is successful.
-//
-// Firestore Merge Behavior:
-//   - The `firestore.MergeAll` option ensures that only the fields in the `data` map
-//     are updated or added to the document. Existing fields not included in the `data` map
-//     remain unchanged.
 func saveDocument(ctx context.Context, docRef *firestore.DocumentRef, data map[string]interface{}) error {
 	_, err := docRef.Set(ctx, data, firestore.MergeAll)
 

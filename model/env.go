@@ -12,13 +12,8 @@ const (
 )
 
 func GetRunningEnvironment() Environment {
-	var env Environment
-
 	if os.Getenv(RunningEnvironment) == string(Production) {
-		env = Production
-	} else {
-		env = Local
+		return Production
 	}
-
-	return env
+	return Local
 }

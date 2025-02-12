@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
-	"github.com/sstp105/bangumi-component/utils"
+	"github.com/bangumilite/bangumilite-component/utils"
 	"regexp"
 	"strconv"
 	"strings"
