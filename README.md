@@ -3,7 +3,7 @@
 Golang shared packages for Bangumi Lite backend services.
 
 ```sh
-go get github.com/bangumilite/bangumilite-component@v1.0.0
+go get github.com/bangumilite/bangumilite-component@v1.0.4
 ```
 
 ## Local Development
