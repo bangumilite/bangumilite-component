@@ -21,6 +21,7 @@ type FirestoreSubject struct {
 	Score      float64 `firestore:"score" json:"score"`
 	Rank       int     `firestore:"rank,omitempty" json:"rank"`
 	Collection int     `firestore:"collection" json:"collection"`
+	Type       int     `firestore:"type,omitempty" json:"type,omitempty"`
 }
 
 type FirestoreSeasonSubject struct {

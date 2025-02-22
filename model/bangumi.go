@@ -6,6 +6,7 @@ type BangumiTags []BangumiTag
 
 type BangumiSubject struct {
 	ID         int               `json:"id" firestore:"id"`
+	Type       int               `json:"type,omitempty" firestore:"type,omitempty"`
 	Name       string            `json:"name" firestore:"name"`
 	NameCn     string            `json:"name_cn" firestore:"name_cn"`
 	Summary    string            `json:"summary" firestore:"summary"`
